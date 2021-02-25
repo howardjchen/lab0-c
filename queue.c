@@ -39,6 +39,7 @@ void q_free(queue_t *q)
         free(pre_node);
         pre_node = node;
     }
+
     /* Free queue structure */
     free(q);
 }
@@ -53,12 +54,33 @@ void q_free(queue_t *q)
 bool q_insert_head(queue_t *q, char *s)
 {
     list_ele_t *newh;
-    /* TODO: What should you do if the q is NULL? */
+    char *news;
+
+    /* Return false is q is NULL */
+    if (!q)
+        return false;
+
+    /* Allocate space for new node */
     newh = malloc(sizeof(list_ele_t));
-    /* Don't forget to allocate space for the string and copy it */
-    /* What if either call to malloc returns NULL? */
+    if (!newh)
+        return false;
+
+    /* Allocate space for string */
+    news = malloc(strlen(s) + 1);
+    if (!news) {
+        free(newh);
+        return false;
+    }
+
+    /* Copy string */
+    memcpy(news, s, strlen(s) + 1);
+
+    /* Attach new head */
     newh->next = q->head;
     q->head = newh;
+    newh->value = news;
+    q->size += 1;
+
     return true;
 }
 
