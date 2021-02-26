@@ -174,7 +174,35 @@ int q_size(queue_t *q)
  * (e.g., by calling q_insert_head, q_insert_tail, or q_remove_head).
  * It should rearrange the existing ones.
  */
-void q_reverse(queue_t *q) {}
+void q_reverse(queue_t *q)
+{
+    list_ele_t *pre_node, *next_node, *current;
+
+    if (!q || !q->head || q->size == 1)
+        return;
+
+    printf("q->head = %s\n", q->head->value);
+    printf("q->tail = %s\n", q->tail->value);
+
+    pre_node = q->head;
+    current = q->head->next;
+    next_node = current->next;
+    current->next = pre_node;
+    q->head->next = NULL;
+    q->tail = q->head;
+
+    while (current != NULL) {
+        printf("%s -> ", pre_node->value);
+        pre_node = current;
+        current = next_node;
+        if (current) {
+            next_node = current->next;
+            current->next = pre_node;
+        }
+    }
+    printf("%s\n", pre_node->value);
+    q->head = pre_node;
+}
 
 /*
  * Sort elements of queue in ascending order
