@@ -74,11 +74,15 @@ bool q_insert_head(queue_t *q, char *s)
 
     /* Copy string */
     memcpy(news, s, strlen(s) + 1);
+    newh->value = news;
 
     /* Attach new head */
     newh->next = q->head;
     q->head = newh;
-    newh->value = news;
+
+    if (q->size == 0)
+        q->tail = q->head;
+
     q->size += 1;
 
     return true;
@@ -93,10 +97,39 @@ bool q_insert_head(queue_t *q, char *s)
  */
 bool q_insert_tail(queue_t *q, char *s)
 {
-    /* TODO: You need to write the complete code for this function */
-    /* Remember: It should operate in O(1) time */
-    /* TODO: Remove the above comment when you are about to implement. */
-    return false;
+    list_ele_t *newt;
+    char *news;
+
+    /* Return false is q is NULL */
+    if (!q)
+        return false;
+
+    /* Allocate space for new node */
+    newt = malloc(sizeof(list_ele_t));
+    if (!newt)
+        return false;
+
+    /* Allocate space for string */
+    news = malloc(strlen(s) + 1);
+    if (!news) {
+        free(newt);
+        return false;
+    }
+
+    /* Copy string */
+    memcpy(news, s, strlen(s) + 1);
+    newt->value = news;
+    newt->next = NULL;
+
+    if (q->size > 0)
+        q->tail->next = newt;
+    else
+        q->head = newt;
+
+    q->tail = newt;
+    q->size += 1;
+
+    return true;
 }
 
 /*
@@ -109,9 +142,19 @@ bool q_insert_tail(queue_t *q, char *s)
  */
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
-    /* TODO: You need to fix up this code. */
-    /* TODO: Remove the above comment when you are about to implement. */
+    list_ele_t *rmh;
+
+    if (!q || !q->head)
+        return false;
+
+    memcpy(sp, q->head->value, bufsize);
+    rmh = q->head;
     q->head = q->head->next;
+    free(rmh->value);
+    free(rmh);
+
+    q->size -= 1;
+
     return true;
 }
 
@@ -131,11 +174,7 @@ int q_size(queue_t *q)
  * (e.g., by calling q_insert_head, q_insert_tail, or q_remove_head).
  * It should rearrange the existing ones.
  */
-void q_reverse(queue_t *q)
-{
-    /* TODO: You need to write the code for this function */
-    /* TODO: Remove the above comment when you are about to implement. */
-}
+void q_reverse(queue_t *q) {}
 
 /*
  * Sort elements of queue in ascending order
