@@ -142,16 +142,16 @@ bool q_insert_tail(queue_t *q, char *s)
  */
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
-    list_ele_t *rmh;
+    // list_ele_t *rmh;
 
     if (!q || !q->head)
         return false;
 
     memcpy(sp, q->head->value, bufsize);
-    rmh = q->head;
+    // rmh = q->head;
     q->head = q->head->next;
-    free(rmh->value);
-    free(rmh);
+    // free(rmh->value);
+    // free(rmh);
 
     q->size -= 1;
 
@@ -204,8 +204,51 @@ void q_reverse(queue_t *q)
  * No effect if q is NULL or empty. In addition, if q has only one
  * element, do nothing.
  */
+list_ele_t *merge(list_ele_t *l1, list_ele_t *l2)
+{
+    // merge with recursive
+    if (!l2)
+        return l1;
+    if (!l1)
+        return l2;
+
+    if (strcasecmp(l1->value, l2->value) <= 0) {
+        l1->next = merge(l1->next, l2);
+        return l1;
+    } else {
+        l2->next = merge(l1, l2->next);
+        return l2;
+    }
+}
+
+list_ele_t *mergeSortList(list_ele_t *head)
+{
+    if (!head || !head->next)
+        return head;
+
+    list_ele_t *fast = head->next;
+    list_ele_t *slow = head;
+
+    // split list
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    fast = slow->next;
+    slow->next = NULL;
+
+    // sort each list
+    list_ele_t *l1 = mergeSortList(head);
+    list_ele_t *l2 = mergeSortList(fast);
+
+    // merge sorted l1 and sorted l2
+    return merge(l1, l2);
+}
+
 void q_sort(queue_t *q)
 {
-    /* TODO: You need to write the code for this function */
-    /* TODO: Remove the above comment when you are about to implement. */
+    if (!q || !q->head)
+        return;
+
+    q->head = mergeSortList(q->head);
 }
