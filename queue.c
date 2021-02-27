@@ -147,7 +147,10 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
     if (!q || !q->head)
         return false;
 
+    /* Copy specific bufsize value of removed head to sp and tail \0 */
     memcpy(sp, q->head->value, bufsize);
+    sp[bufsize - 1] = '\0';
+
     rmh = q->head;
     q->head = q->head->next;
     free(rmh->value);
