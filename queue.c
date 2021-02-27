@@ -142,17 +142,16 @@ bool q_insert_tail(queue_t *q, char *s)
  */
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
-    // list_ele_t *rmh;
+    list_ele_t *rmh;
 
     if (!q || !q->head)
         return false;
 
     memcpy(sp, q->head->value, bufsize);
-    // rmh = q->head;
+    rmh = q->head;
     q->head = q->head->next;
-    // free(rmh->value);
-    // free(rmh);
-
+    free(rmh->value);
+    free(rmh);
     q->size -= 1;
 
     return true;
@@ -247,8 +246,16 @@ list_ele_t *mergeSortList(list_ele_t *head)
 
 void q_sort(queue_t *q)
 {
+    list_ele_t *node;
+
     if (!q || !q->head)
         return;
 
     q->head = mergeSortList(q->head);
+
+    node = q->head;
+    while (node->next) {
+        node = node->next;
+    }
+    q->tail = node;
 }
