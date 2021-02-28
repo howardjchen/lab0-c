@@ -66,7 +66,7 @@ bool q_insert_head(queue_t *q, char *s)
         return false;
 
     /* Allocate space for string */
-    news = malloc(strlen(s) + 1);
+    news = malloc((strlen(s) + 1) * sizeof(char));
     if (!news) {
         free(newh);
         return false;
@@ -110,7 +110,7 @@ bool q_insert_tail(queue_t *q, char *s)
         return false;
 
     /* Allocate space for string */
-    news = malloc(strlen(s) + 1);
+    news = malloc((strlen(s) + 1) * sizeof(char));
     if (!news) {
         free(newt);
         return false;
@@ -217,10 +217,10 @@ void q_reverse(queue_t *q)
 list_ele_t *merge(list_ele_t *l1, list_ele_t *l2)
 {
     // merge with recursive
-    if (!l2)
-        return l1;
     if (!l1)
         return l2;
+    if (!l2)
+        return l1;
 
     if (strcasecmp(l1->value, l2->value) < 0) {
         l1->next = merge(l1->next, l2);
@@ -231,25 +231,28 @@ list_ele_t *merge(list_ele_t *l1, list_ele_t *l2)
     }
 }
 
-list_ele_t *mergeSortList(list_ele_t *head)
+static list_ele_t *find_mid(list_ele_t *head)
 {
-    if (!head || !head->next)
-        return head;
-
-    list_ele_t *fast = head->next;
     list_ele_t *slow = head;
-
-    // split list
+    list_ele_t *fast = head;
+    list_ele_t *prev = NULL;
     while (fast && fast->next) {
+        prev = slow;
         slow = slow->next;
         fast = fast->next->next;
     }
-    fast = slow->next;
-    slow->next = NULL;
+    prev->next = NULL;
+    return slow;
+}
 
-    // sort each list
+list_ele_t *mergeSortList(list_ele_t *head)
+{
+    if (!head->next)
+        return head;
+
+    list_ele_t *mid = find_mid(head);
     list_ele_t *l1 = mergeSortList(head);
-    list_ele_t *l2 = mergeSortList(fast);
+    list_ele_t *l2 = mergeSortList(mid);
 
     // merge sorted l1 and sorted l2
     return merge(l1, l2);
@@ -262,7 +265,6 @@ void q_sort(queue_t *q)
 
     q->head = mergeSortList(q->head);
 
-    q->tail = q->head;
     while (q->tail->next) {
         q->tail = q->tail->next;
     }
