@@ -126,7 +126,21 @@ int q_size(struct list_head *head)
 /* Delete the middle node in queue */
 bool q_delete_mid(struct list_head *head)
 {
-    // https://leetcode.com/problems/delete-the-middle-node-of-a-linked-list/
+    struct list_head *slow, *fast;
+
+    if (!head)
+        return false;
+
+    slow = head;
+    fast = head->next->next;
+
+    while (fast != head || fast->next != head) {
+        fast = slow->next->next;
+        slow = slow->next;
+    }
+
+    list_del(slow);
+
     return true;
 }
 
@@ -166,8 +180,88 @@ void q_reverseK(struct list_head *head, int k)
     // https://leetcode.com/problems/reverse-nodes-in-k-group/
 }
 
+struct list_head *merge_list(struct list_head *l1,
+                             struct list_head *l2,
+                             struct list_head const *head,
+                             bool descend)
+{
+    LIST_HEAD(tmp_head);
+    struct list_head *ptr = &tmp_head, *tmp = &tmp_head;
+
+    while ((l1 != head) && (l2 != head)) {
+        if (descend) {
+            if (strcmp(list_entry(l1, element_t, list)->value,
+                       list_entry(l2, element_t, list)->value) >= 0) {
+                ptr->next = l1;
+                l1->prev = ptr;
+                l1 = l1->next;
+            } else {
+                ptr->next = l2;
+                l2->prev = ptr;
+                l2 = l2->next;
+            }
+        } else {
+            if (strcmp(list_entry(l1, element_t, list)->value,
+                       list_entry(l2, element_t, list)->value) <= 0) {
+                ptr->next = l1;
+                l1->prev = ptr;
+                l1 = l1->next;
+            } else {
+                ptr->next = l2;
+                l2->prev = ptr;
+                l2 = l2->next;
+            }
+        }
+        ptr = ptr->next;
+    }
+
+    ptr->next = (l1 != head) ? l1 : l2;
+    (ptr->next)->prev = ptr;
+
+    return tmp->next;
+}
+
+static struct list_head *mergesort_list(struct list_head *node,
+                                        struct list_head *head,
+                                        bool descend)
+{
+    struct list_head *left, *right;
+
+    if (!head || node->next == head)
+        return node;
+
+    struct list_head *slow = node;
+    struct list_head *fast = slow->next->next;
+    struct list_head *mid = NULL;
+
+    while ((fast->next != head) && (fast != head)) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    mid = slow->next;
+    slow->next = head;
+
+    left = mergesort_list(node, head, descend);
+    right = mergesort_list(mid, head, descend);
+
+    return merge_list(left, right, head, descend);
+}
+
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    head->next = mergesort_list(head->next, head, descend);
+    head->next->prev = head;
+
+    struct list_head *tmp = head->next;
+    while (tmp->next != head)
+        tmp = tmp->next;
+    head->prev = tmp;
+}
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
