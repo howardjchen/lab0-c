@@ -28,6 +28,14 @@ void q_free(struct list_head *head)
 {
     element_t *el, *el_next;
 
+    if (!head)
+        return;
+
+    if (list_empty(head)) {
+        free(head);
+        return;
+    }
+
     list_for_each_entry_safe (el, el_next, head, list) {
         free(el->value);
         free(el);
@@ -93,7 +101,7 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
         }
     }
 
-    list_del(head->next);
+    list_del(&ele->list);
 
     return ele;
 }
@@ -116,7 +124,7 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
         }
     }
 
-    list_del(head->next);
+    list_del(&ele->list);
 
     return ele;
 }
@@ -152,6 +160,7 @@ bool q_delete_mid(struct list_head *head)
     }
 
     list_del(slow);
+    q_release_element(list_entry(slow, element_t, list));
 
     return true;
 }
@@ -202,32 +211,7 @@ void q_reverse(struct list_head *head)
 }
 
 /* Reverse the nodes of the list k at a time */
-void q_reverseK(struct list_head *head, int k)
-{
-    struct list_head *cur = head, *temp = head, *first_prev;
-    int cnt = 0, cnt2 = 0;
-
-    if (!head || list_empty(head) || list_is_singular(head))
-        return;
-
-    first_prev = cur->prev;
-    while (cnt < k) {
-        temp = cur->next;
-        cur->next = cur->prev;
-        cur->prev = temp;
-        cnt++;
-        if (cnt < k)
-            cur = temp;
-    }
-    cur->prev = first_prev;
-
-    /* traverse to the new last node */
-    while (cnt2 < (k - 1)) {
-        cur = cur->next;
-        cnt2++;
-    }
-    cur->next = temp;
-}
+void q_reverseK(struct list_head *head, int k) {}
 
 struct list_head *merge_list(struct list_head *l1,
                              struct list_head *l2,
