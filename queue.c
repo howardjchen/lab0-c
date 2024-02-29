@@ -144,10 +144,10 @@ bool q_delete_mid(struct list_head *head)
         return false;
 
     slow = head;
-    fast = head->next->next;
+    fast = head;
 
-    while (fast != head || fast->next != head) {
-        fast = slow->next->next;
+    while (fast != head && fast->next != head) {
+        fast = fast->next->next;
         slow = slow->next;
     }
 
@@ -159,12 +159,34 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
+    element_t *el = NULL;
+    char *target;
+
+    q_sort(head, 0);
+
+    target = list_entry(head, element_t, list)->value;
+
+    list_for_each_entry (el, head->next, list) {
+        if (strcmp(target, el->value) == 0)
+            list_del(&el->list);
+        else
+            target = el->value;
+    }
+
     return true;
 }
 
 /* Swap every two adjacent nodes */
-void q_swap(struct list_head *head) {}
+void q_swap(struct list_head *head)
+{
+    struct list_head *node;
+
+    if (!head || list_empty(head))
+        return;
+    list_for_each (node, head) {
+        list_move(node, node->next);
+    }
+}
 
 /* Reverse elements in queue */
 void q_reverse(struct list_head *head)
@@ -189,7 +211,29 @@ void q_reverse(struct list_head *head)
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    // https://leetcode.com/problems/reverse-nodes-in-k-group/
+    struct list_head *cur = head, *temp = head, *first_prev;
+    int cnt = 0, cnt2 = 0;
+
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    first_prev = cur->prev;
+    while (cnt < k) {
+        temp = cur->next;
+        cur->next = cur->prev;
+        cur->prev = temp;
+        cnt++;
+        if (cnt < k)
+            cur = temp;
+    }
+    cur->prev = first_prev;
+
+    /* traverse to the new last node */
+    while (cnt2 < (k - 1)) {
+        cur = cur->next;
+        cnt2++;
+    }
+    cur->next = temp;
 }
 
 struct list_head *merge_list(struct list_head *l1,
