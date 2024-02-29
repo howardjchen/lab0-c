@@ -140,11 +140,11 @@ bool q_delete_mid(struct list_head *head)
 {
     struct list_head *slow, *fast;
 
-    if (!head)
+    if (!head || list_empty(head))
         return false;
 
-    slow = head;
-    fast = head;
+    slow = head->next;
+    fast = head->next;
 
     while (fast != head && fast->next != head) {
         fast = fast->next->next;
@@ -191,21 +191,14 @@ void q_swap(struct list_head *head)
 /* Reverse elements in queue */
 void q_reverse(struct list_head *head)
 {
-    struct list_head *cur = head, *temp;
+    struct list_head *node, *safe;
 
     if (!head || list_empty(head) || list_is_singular(head))
         return;
 
-    while (cur->next != head) {
-        temp = cur->next;
-        cur->next = cur->prev;
-        cur->prev = temp;
-        cur = temp;
+    list_for_each_safe (node, safe, head) {
+        list_move(node, head);
     }
-
-    temp = cur->next;
-    cur->next = cur->prev;
-    cur->prev = temp;
 }
 
 /* Reverse the nodes of the list k at a time */
