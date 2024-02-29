@@ -193,7 +193,8 @@ void q_swap(struct list_head *head)
     if (!head || list_empty(head))
         return;
     list_for_each (node, head) {
-        list_move(node, node->next);
+        if (node->next != head)
+            list_move(node, node->next);
     }
 }
 
