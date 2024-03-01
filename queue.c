@@ -26,20 +26,14 @@ struct list_head *q_new()
 /* Free all storage used by queue */
 void q_free(struct list_head *head)
 {
-    element_t *el, *el_next;
+    element_t *el, *safe;
 
     if (!head)
         return;
 
-    if (list_empty(head)) {
-        free(head);
-        return;
-    }
+    list_for_each_entry_safe (el, safe, head, list)
+        q_release_element(el);
 
-    list_for_each_entry_safe (el, el_next, head, list) {
-        free(el->value);
-        free(el);
-    }
     free(head);
 }
 
@@ -168,18 +162,26 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
-    element_t *el = NULL;
-    char *target;
+    element_t *el, *safe;
+    char *target = NULL;
 
-    q_sort(head, 0);
+    if (!head || list_empty(head) || list_is_singular(head))
+        return false;
 
-    target = list_entry(head, element_t, list)->value;
+    list_for_each_entry_safe (el, safe, head, list) {
+        if (el->list.next != head) {
+            if (strcmp(el->value, safe->value) == 0) {
+                target = strdup(el->value);
+            }
+        }
 
-    list_for_each_entry (el, head->next, list) {
-        if (strcmp(target, el->value) == 0)
-            list_del(&el->list);
-        else
-            target = el->value;
+        /* Delete duplicate node and element */
+        if (target) {
+            if (strcmp(el->value, target) == 0) {
+                list_del(&el->list);
+                q_release_element(el);
+            }
+        }
     }
 
     return true;
