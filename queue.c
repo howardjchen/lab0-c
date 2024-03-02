@@ -173,6 +173,8 @@ bool q_delete_dup(struct list_head *head)
     list_for_each_entry_safe (el, safe, head, list) {
         if (el->list.next != head) {
             if (strcmp(el->value, safe->value) == 0) {
+                if (target)
+                    free(target);
                 target = strdup(el->value);
             }
         }
@@ -185,6 +187,10 @@ bool q_delete_dup(struct list_head *head)
             }
         }
     }
+
+    /* Free the target if last node was deleted */
+    if (target)
+        free(target);
 
     return true;
 }
