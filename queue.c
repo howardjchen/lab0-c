@@ -89,8 +89,9 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 
     ele = list_first_entry(head, element_t, list);
     if (sp) {
-        if (strlen(ele->value) <= bufsize)
-            memcpy(sp, ele->value, strlen(ele->value) + 1);
+        size_t len = strlen(ele->value);
+        if (len <= bufsize)
+            memcpy(sp, ele->value, len + 1);
         else {
             memcpy(sp, ele->value, bufsize - 1);
             sp[bufsize - 1] = '\0';
@@ -112,8 +113,9 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 
     ele = list_last_entry(head, element_t, list);
     if (sp) {
-        if (strlen(ele->value) <= bufsize)
-            memcpy(sp, ele->value, strlen(ele->value) + 1);
+        size_t len = strlen(ele->value);
+        if (len <= bufsize)
+            memcpy(sp, ele->value, len + 1);
         else {
             memcpy(sp, ele->value, bufsize - 1);
             sp[bufsize - 1] = '\0';
