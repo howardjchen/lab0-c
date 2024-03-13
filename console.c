@@ -628,6 +628,80 @@ static int cmd_select(int nfds,
     return result;
 }
 
+static int web_select(int nfds,
+                      fd_set *readfds,
+                      fd_set *writefds,
+                      fd_set *exceptfds,
+                      struct timeval *timeout)
+{
+    int infd;
+    fd_set local_readset;
+
+    if (cmd_done())
+        return 0;
+
+    if (!block_flag) {
+        /* Process any commands in input buffer */
+        if (!readfds)
+            readfds = &local_readset;
+
+        /* Add input fd to readset for select */
+        infd = buf_stack->fd;
+        FD_ZERO(readfds);
+        FD_SET(infd, readfds);
+
+        /* If web not ready listen */
+        if (web_fd != -1)
+            FD_SET(web_fd, readfds);
+
+        if (infd == STDIN_FILENO && prompt_flag) {
+            printf("%s", prompt);
+            fflush(stdout);
+            prompt_flag = true;
+        }
+
+        if (infd >= nfds)
+            nfds = infd + 1;
+        if (web_fd >= nfds)
+            nfds = web_fd + 1;
+    }
+    if (nfds == 0)
+        return 0;
+
+    int result = select(nfds, readfds, writefds, exceptfds, timeout);
+    if (result <= 0)
+        return result;
+
+    infd = buf_stack->fd;
+    if (readfds && FD_ISSET(infd, readfds)) {
+        /* Commandline input available */
+        FD_CLR(infd, readfds);
+        result--;
+
+        set_echo(0);
+        char *cmdline = linenoise(prompt);
+        if (cmdline)
+            interpret_cmd(cmdline);
+    } else if (readfds && FD_ISSET(web_fd, readfds)) {
+        FD_CLR(web_fd, readfds);
+        result--;
+        struct sockaddr_in clientaddr;
+        socklen_t clientlen = sizeof(clientaddr);
+        web_connfd =
+            accept(web_fd, (struct sockaddr *) &clientaddr, &clientlen);
+
+        char *p = web_recv(web_connfd, &clientaddr);
+        char *buffer = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
+        web_send(web_connfd, buffer);
+
+        if (p)
+            interpret_cmd(p);
+        free(p);
+        close(web_connfd);
+    }
+    return result;
+}
+
 bool finish_cmd()
 {
     bool ok = true;
@@ -698,11 +772,11 @@ bool run_console(char *infile_name)
         }
         if (!use_linenoise) {
             while (!cmd_done())
-                cmd_select(0, NULL, NULL, NULL, NULL);
+                web_select(0, NULL, NULL, NULL, NULL);
         }
     } else {
         while (!cmd_done())
-            cmd_select(0, NULL, NULL, NULL, NULL);
+            web_select(0, NULL, NULL, NULL, NULL);
     }
 
     return err_cnt == 0;
