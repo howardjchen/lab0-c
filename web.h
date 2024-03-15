@@ -9,4 +9,6 @@ char *web_recv(int fd, struct sockaddr_in *clientaddr);
 
 void web_send(int out_fd, char *buffer);
 
+char *web_action(int web_fd);
+
 #endif

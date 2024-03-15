@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+int web_connfd;
 
 #define LISTENQ 1024 /* second argument to listen() */
 #define MAXLINE 1024 /* max length of a line */
@@ -227,4 +228,18 @@ char *web_recv(int fd, struct sockaddr_in *clientaddr)
     strncpy(ret, req.filename, strlen(req.filename) + 1);
 
     return ret;
+}
+
+char *web_action(int web_fd)
+{
+    struct sockaddr_in clientaddr;
+    socklen_t clientlen = sizeof(clientaddr);
+    web_connfd = accept(web_fd, (struct sockaddr *) &clientaddr, &clientlen);
+
+    char *p = web_recv(web_connfd, &clientaddr);
+    char *buffer = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
+    web_send(web_connfd, buffer);
+    close(web_connfd);
+
+    return p;
 }

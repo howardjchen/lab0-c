@@ -897,7 +897,8 @@ static int line_edit(int stdin_fd,
                      int stdout_fd,
                      char *buf,
                      size_t buflen,
-                     const char *prompt)
+                     const char *prompt,
+                     int web_fd)
 {
     struct line_state l;
 
@@ -915,6 +916,7 @@ static int line_edit(int stdin_fd,
     l.cols = get_columns(stdin_fd, stdout_fd);
     l.maxrows = 0;
     l.history_index = 0;
+    fd_set local_readset;
 
     /* Buffer starts empty. */
     l.buf[0] = '\0';
@@ -931,6 +933,31 @@ static int line_edit(int stdin_fd,
         signed char c;
         int nread;
         char seq[5];
+
+        FD_ZERO(&local_readset);
+        FD_SET(STDIN_FILENO, &local_readset);
+        int nfds = STDIN_FILENO;
+
+        if (web_fd > 0) {
+            FD_SET(web_fd, &local_readset);
+            nfds = nfds > web_fd ? nfds : web_fd;
+        }
+
+        if (web_fd > 0) {
+            select(nfds + 1, &local_readset, NULL, NULL, NULL);
+
+            if (FD_ISSET(web_fd, &local_readset)) {
+                FD_CLR(web_fd, &local_readset);
+                char *p = web_action(web_fd);
+                strncpy(buf, p, strlen(p) + 1);
+                nread = strlen(p) + 1;
+                free(p);
+
+                return nread;
+            }
+
+            FD_CLR(STDIN_FILENO, &local_readset);
+        }
 
         nread = read(l.ifd, &c, 1);
         if (nread <= 0)
@@ -1129,7 +1156,26 @@ static int line_raw(char *buf, size_t buflen, const char *prompt)
 
     if (enable_raw_mode(STDIN_FILENO) == -1)
         return -1;
-    int count = line_edit(STDIN_FILENO, STDOUT_FILENO, buf, buflen, prompt);
+    int count = line_edit(STDIN_FILENO, STDOUT_FILENO, buf, buflen, prompt, -1);
+    disable_raw_mode(STDIN_FILENO);
+    printf("\n");
+    return count;
+}
+
+static int line_raw_web(char *buf,
+                        size_t buflen,
+                        const char *prompt,
+                        int web_fd)
+{
+    if (buflen == 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (enable_raw_mode(STDIN_FILENO) == -1)
+        return -1;
+    int count =
+        line_edit(STDIN_FILENO, STDOUT_FILENO, buf, buflen, prompt, web_fd);
     disable_raw_mode(STDIN_FILENO);
     printf("\n");
     return count;
@@ -1210,6 +1256,40 @@ char *linenoise(const char *prompt)
     }
 
     int count = line_raw(buf, LINENOISE_MAX_LINE, prompt);
+    if (count == -1)
+        return NULL;
+    return strdup(buf);
+}
+
+char *linenoise_web(const char *prompt, int web_fd)
+{
+    char buf[LINENOISE_MAX_LINE];
+
+    if (!atexit_registered) {
+        atexit(line_atexit);
+        atexit_registered = true;
+    }
+
+    if (!isatty(STDIN_FILENO)) {
+        /* Not a tty: read from file / pipe. In this mode we don't want any
+         * limit to the line size, so we call a function to handle that. */
+        return line_no_tty();
+    } else if (is_unsupported_term()) {
+        size_t len;
+
+        printf("%s", prompt);
+        fflush(stdout);
+        if (!fgets(buf, LINENOISE_MAX_LINE, stdin))
+            return NULL;
+        len = strlen(buf);
+        while (len && (buf[len - 1] == '\n' || buf[len - 1] == '\r')) {
+            len--;
+            buf[len] = '\0';
+        }
+        return strdup(buf);
+    }
+
+    int count = line_raw_web(buf, LINENOISE_MAX_LINE, prompt, web_fd);
     if (count == -1)
         return NULL;
     return strdup(buf);

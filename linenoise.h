@@ -44,6 +44,7 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include "web.h"
 
 typedef struct {
     size_t len;
@@ -61,6 +62,7 @@ void line_add_completion(line_completions_t *, const char *);
 /* clang-format on */
 
 char *linenoise(const char *prompt);
+char *linenoise_web(const char *prompt, int web_fd);
 void line_free(void *ptr);
 int line_history_add(const char *line);
 int line_history_set_max_len(int len);

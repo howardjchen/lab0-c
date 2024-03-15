@@ -392,7 +392,7 @@ static bool do_time(int argc, char *argv[])
 }
 
 static bool use_linenoise = true;
-static int web_fd;
+static int web_fd = -1;
 
 static bool do_web(int argc, char *argv[])
 {
@@ -553,7 +553,6 @@ static bool cmd_done()
  * nfds should be set to the maximum file descriptor for network sockets.
  * If nfds == 0, this indicates that there is no pending network activity
  */
-int web_connfd;
 static int cmd_select(int nfds,
                       fd_set *readfds,
                       fd_set *writefds,
@@ -611,37 +610,12 @@ static int cmd_select(int nfds,
     } else if (readfds && FD_ISSET(web_fd, readfds)) {
         FD_CLR(web_fd, readfds);
         result--;
-        struct sockaddr_in clientaddr;
-        socklen_t clientlen = sizeof(clientaddr);
-        web_connfd =
-            accept(web_fd, (struct sockaddr *) &clientaddr, &clientlen);
 
-        char *p = web_recv(web_connfd, &clientaddr);
-        char *buffer = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
-        web_send(web_connfd, buffer);
-
-        if (p)
-            interpret_cmd(p);
-        free(p);
-        close(web_connfd);
+        char *cmdline = web_action(web_fd);
+        if (cmdline)
+            interpret_cmd(cmdline);
     }
     return result;
-}
-
-static void web_action()
-{
-    struct sockaddr_in clientaddr;
-    socklen_t clientlen = sizeof(clientaddr);
-    web_connfd = accept(web_fd, (struct sockaddr *) &clientaddr, &clientlen);
-
-    char *p = web_recv(web_connfd, &clientaddr);
-    char *buffer = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
-    web_send(web_connfd, buffer);
-
-    if (p)
-        interpret_cmd(p);
-    free(p);
-    close(web_connfd);
 }
 
 static int web_select(int nfds,
@@ -650,44 +624,14 @@ static int web_select(int nfds,
                       fd_set *exceptfds,
                       struct timeval *timeout)
 {
-    fd_set local_readset;
-
     if (cmd_done())
         return 0;
 
-    if (!block_flag) {
-        /* Process any commands in input buffer */
-        if (!readfds)
-            readfds = &local_readset;
-
-        /* Add input fd to readset for select */
-        FD_ZERO(readfds);
-
-        /* If web not ready listen */
-        if (web_fd != -1)
-            FD_SET(web_fd, readfds);
-
-        if (web_fd >= nfds)
-            nfds = web_fd + 1;
-    }
-    if (nfds == 0)
-        return 0;
-
-    char *cmdline = linenoise(prompt);
+    char *cmdline = linenoise_web(prompt, web_fd);
     if (cmdline)
         interpret_cmd(cmdline);
 
-    int result = select(nfds, readfds, writefds, exceptfds, timeout);
-    if (result <= 0)
-        return result;
-
-    if (readfds && FD_ISSET(web_fd, readfds)) {
-        FD_CLR(web_fd, readfds);
-        result--;
-        web_action();
-    }
-
-    return result;
+    return 0;
 }
 
 bool finish_cmd()
@@ -742,12 +686,6 @@ void completion(const char *buf, line_completions_t *lc)
 
 bool run_console(char *infile_name)
 {
-    struct timeval tv;
-
-    /* Wait up to five seconds. */
-    tv.tv_sec = 0;
-    tv.tv_usec = 500;
-
     if (!push_file(infile_name)) {
         report(1, "ERROR: Could not open source file '%s'", infile_name);
         return false;
@@ -766,11 +704,11 @@ bool run_console(char *infile_name)
         }
         if (!use_linenoise) {
             while (!cmd_done())
-                web_select(0, NULL, NULL, NULL, &tv);
+                web_select(0, NULL, NULL, NULL, NULL);
         }
     } else {
         while (!cmd_done())
-            web_select(0, NULL, NULL, NULL, &tv);
+            cmd_select(0, NULL, NULL, NULL, NULL);
     }
 
     return err_cnt == 0;
