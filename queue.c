@@ -520,16 +520,15 @@ __attribute__((nonnull(2, 3))) void list_sort(void *priv,
 
 #else
 
-struct list_head *merge_list(struct list_head *l1,
-                             struct list_head *l2,
-                             struct list_head *head,
-                             bool descend,
-                             size_t cnt)
+static void merge_list(struct list_head *l1,
+                       struct list_head *l2,
+                       struct list_head **phead,
+                       bool descend,
+                       size_t cnt)
 {
-    LIST_HEAD(tmp_head);
-    struct list_head *ptr = &tmp_head, *tmp = &tmp_head;
+    struct list_head *ptr = (*phead);
 
-    while ((l1 != head) && (l2 != head)) {
+    while ((l1 != (*phead)) && (l2 != (*phead))) {
         if (descend) {
             if (strcmp(list_entry(l1, element_t, list)->value,
                        list_entry(l2, element_t, list)->value) >= 0) {
@@ -556,45 +555,45 @@ struct list_head *merge_list(struct list_head *l1,
         ptr = ptr->next;
     }
 
-    ptr->next = (l1 != head) ? l1 : l2;
+    ptr->next = (l1 != (*phead)) ? l1 : l2;
     (ptr->next)->prev = ptr;
 
     if (cnt == 1) {
-        while (ptr->next != head)
+        while (ptr->next != (*phead))
             ptr = ptr->next;
-        head->prev = ptr;
+        (*phead)->prev = ptr;
     }
-
-    return tmp->next;
 }
 
 static struct list_head *mergesort_list(struct list_head *node,
-                                        struct list_head *head,
+                                        struct list_head **phead,
                                         bool descend,
                                         size_t cnt)
 {
     struct list_head *left, *right;
 
-    if (!head || node->next == head)
+    if (!(*phead) || node->next == (*phead))
         return node;
 
     struct list_head *slow = node;
     struct list_head *fast = slow->next->next;
     struct list_head *mid = NULL;
 
-    while ((fast->next != head) && (fast != head)) {
+    while ((fast->next != (*phead)) && (fast != (*phead))) {
         slow = slow->next;
         fast = fast->next->next;
     }
 
     mid = slow->next;
-    slow->next = head;
+    slow->next = (*phead);
 
     cnt++;
-    left = mergesort_list(node, head, descend, cnt);
-    right = mergesort_list(mid, head, descend, cnt);
+    left = mergesort_list(node, phead, descend, cnt);
+    right = mergesort_list(mid, phead, descend, cnt);
 
-    return merge_list(left, right, head, descend, cnt);
+    merge_list(left, right, phead, descend, cnt);
+
+    return (*phead)->next;
 }
 #endif
 
@@ -604,13 +603,13 @@ void q_sort(struct list_head *head, bool descend)
     if (!head || list_empty(head) || list_is_singular(head))
         return;
 
-
 #if defined(SORT_BY_KERNEL_API)
     list_sort(NULL, head, sort_comp);
 #else
 
-    head->next = mergesort_list(head->next, head, descend, 0);
-    head->next->prev = head;
+    struct list_head **phead = &head;
+    (*phead)->next = mergesort_list((*phead)->next, phead, descend, 0);
+    (*phead)->next->prev = (*phead);
 
 #endif
 }
