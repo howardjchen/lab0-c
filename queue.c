@@ -522,8 +522,9 @@ __attribute__((nonnull(2, 3))) void list_sort(void *priv,
 
 struct list_head *merge_list(struct list_head *l1,
                              struct list_head *l2,
-                             struct list_head const *head,
-                             bool descend)
+                             struct list_head *head,
+                             bool descend,
+                             size_t cnt)
 {
     LIST_HEAD(tmp_head);
     struct list_head *ptr = &tmp_head, *tmp = &tmp_head;
@@ -558,12 +559,19 @@ struct list_head *merge_list(struct list_head *l1,
     ptr->next = (l1 != head) ? l1 : l2;
     (ptr->next)->prev = ptr;
 
+    if (cnt == 1) {
+        while (ptr->next != head)
+            ptr = ptr->next;
+        head->prev = ptr;
+    }
+
     return tmp->next;
 }
 
 static struct list_head *mergesort_list(struct list_head *node,
                                         struct list_head *head,
-                                        bool descend)
+                                        bool descend,
+                                        size_t cnt)
 {
     struct list_head *left, *right;
 
@@ -582,10 +590,11 @@ static struct list_head *mergesort_list(struct list_head *node,
     mid = slow->next;
     slow->next = head;
 
-    left = mergesort_list(node, head, descend);
-    right = mergesort_list(mid, head, descend);
+    cnt++;
+    left = mergesort_list(node, head, descend, cnt);
+    right = mergesort_list(mid, head, descend, cnt);
 
-    return merge_list(left, right, head, descend);
+    return merge_list(left, right, head, descend, cnt);
 }
 #endif
 
@@ -600,13 +609,8 @@ void q_sort(struct list_head *head, bool descend)
     list_sort(NULL, head, sort_comp);
 #else
 
-    head->next = mergesort_list(head->next, head, descend);
+    head->next = mergesort_list(head->next, head, descend, 0);
     head->next->prev = head;
-
-    struct list_head *tmp = head->next;
-    while (tmp->next != head)
-        tmp = tmp->next;
-    head->prev = tmp;
 
 #endif
 }
