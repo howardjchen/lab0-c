@@ -679,6 +679,66 @@ static bool do_swap(int argc, char *argv[])
     return !error_check();
 }
 
+static struct list_head *find_node(struct list_head *head, int id)
+{
+    struct list_head *node = head;
+
+    while (id > 0) {
+        node = node->next;
+        id--;
+    }
+
+    return node;
+}
+
+/**
+ * q_shuffle() - Using Fisher–Yates shuffle algorithm to shuffle the list
+ * @head: header of chain
+ *
+ *  -- To shuffle an array a of n elements (indices 0..n-1):
+ * for i from n−1 downto 1 do
+ *      j ← random integer such that 0 ≤ j ≤ i
+ *      exchange a[j] and a[i]
+ */
+void q_shuffle(struct list_head *head)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    int n = q_size(head);
+    if (n == 1)
+        return;
+
+    for (int i = 0; i < n; i++) {
+        int j = (rand() % (n - i)) + 1;
+        struct list_head *target = find_node(head, j);
+        list_move_tail(target, head);
+    }
+}
+
+static bool do_shuffle(int argc, char *argv[])
+{
+    if (argc != 1) {
+        report(1, "%s takes no arguments", argv[0]);
+        return false;
+    }
+
+    if (!current || !current->q) {
+        report(3, "Warning: Try to access null queue");
+        return false;
+    }
+    error_check();
+
+    set_noallocate_mode(true);
+    if (exception_setup(true))
+        q_shuffle(current->q);
+    exception_cancel();
+
+    set_noallocate_mode(false);
+
+    q_show(3);
+    return !error_check();
+}
 
 static bool do_ascend(int argc, char *argv[])
 {
@@ -1042,6 +1102,7 @@ static void console_init()
     ADD_COMMAND(dedup, "Delete all nodes that have duplicate string", "");
     ADD_COMMAND(merge, "Merge all the queues into one sorted queue", "");
     ADD_COMMAND(swap, "Swap every two adjacent nodes in queue", "");
+    ADD_COMMAND(shuffle, "Shuffle the list node", "");
     ADD_COMMAND(ascend,
                 "Remove every node which has a node with a strictly less "
                 "value anywhere to the right side of it",
