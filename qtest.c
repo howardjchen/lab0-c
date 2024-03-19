@@ -101,11 +101,8 @@ int compare_ascend(void *priv,
                    const struct list_head *a,
                    const struct list_head *b)
 {
-    if (a == b)
-        return 0;
-
-    int res = list_entry(a, element_t, list)->value -
-              list_entry(b, element_t, list)->value;
+    int res = strcmp(list_entry(a, element_t, list)->value,
+                     list_entry(b, element_t, list)->value);
 
     if (priv)
         *((int *) priv) += 1;
@@ -117,16 +114,13 @@ int compare_descend(void *priv,
                     const struct list_head *a,
                     const struct list_head *b)
 {
-    if (a == b)
-        return 0;
-
-    int res = list_entry(b, element_t, list)->value -
-              list_entry(a, element_t, list)->value;
+    int res = strcmp(list_entry(a, element_t, list)->value,
+                     list_entry(b, element_t, list)->value);
 
     if (priv)
         *((int *) priv) += 1;
 
-    return res;
+    return -res;
 }
 
 static inline size_t run_size(struct list_head *head)
@@ -371,7 +365,6 @@ bool do_timsort(int argc, char *argv[])
         else
             timsort(&count, current->q, compare_ascend);
     }
-    report(1, "count: %d\n", count);
     exception_cancel();
     set_noallocate_mode(false);
 
@@ -900,7 +893,6 @@ bool do_sort(int argc, char *argv[])
         report(1, "%s takes no arguments", argv[0]);
         return false;
     }
-
     int cnt = 0;
     if (!current || !current->q)
         report(3, "Warning: Calling sort on null queue");
