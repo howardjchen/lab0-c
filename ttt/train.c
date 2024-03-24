@@ -9,9 +9,8 @@
 #include <string.h>
 #include <time.h>
 
-#include "agents/reinforcement_learning.h"
-#include "agents/util.h"
 #include "game.h"
+#include "util.h"
 
 // for training
 #define INITIAL_MUTIPLIER 0.0001

@@ -6,6 +6,7 @@ CFLAGS += -Wvla
 
 GIT_HOOKS := .git/hooks/applied
 DUT_DIR := dudect
+TTT_DIR := ttt
 all: $(GIT_HOOKS) qtest
 
 tid := 0
@@ -45,8 +46,8 @@ OBJS := qtest.o report.o console.o harness.o queue.o \
 		ttt/ttt.o \
 		ttt/mt19937-64.o \
 		ttt/zobrist.o \
-		ttt/agents/mcts.o \
-		ttt/agents/negamax.o
+		ttt/mcts.o \
+		ttt/negamax.o
 
 deps := $(OBJS:%.o=.%.o.d)
 
@@ -56,6 +57,7 @@ qtest: $(OBJS)
 
 %.o: %.c
 	@mkdir -p .$(DUT_DIR)
+	@mkdir -p .$(TTT_DIR)
 	$(VECHO) "  CC\t$@\n"
 	$(Q)$(CC) -o $@ $(CFLAGS) -c -MMD -MF .$@.d $<
 
@@ -77,12 +79,13 @@ valgrind: valgrind_existence
 	sed -i "s/alarm/isnan/g" $(patched_file)
 	scripts/driver.py -p $(patched_file) --valgrind $(TCASE)
 	@echo
-	@echo "Test with specific case by running command:" 
+	@echo "Test with specific case by running command:"
 	@echo "scripts/driver.py -p $(patched_file) --valgrind -t <tid>"
 
 clean:
 	rm -f $(OBJS) $(deps) *~ qtest /tmp/qtest.*
 	rm -rf .$(DUT_DIR)
+	rm -rf .$(TTT_DIR)
 	rm -rf *.dSYM
 	(cd traces; rm -f *~)
 

@@ -8,9 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "agents/mcts.h"
-#include "agents/negamax.h"
 #include "game.h"
+#include "mcts.h"
+#include "negamax.h"
 
 #define USE_MCTS 1
 

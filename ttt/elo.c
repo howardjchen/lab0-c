@@ -6,10 +6,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "agents/mcts.h"
-#include "agents/negamax.h"
-#include "agents/reinforcement_learning.h"
 #include "game.h"
+#include "mcts.h"
+#include "negamax.h"
 #include "zobrist.h"
 
 #define N_GAMES 100

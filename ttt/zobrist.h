@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 #include "game.h"
-#include "../list.h"
 #include "hlist.h"
 
 #define HASH_TABLE_SIZE ((int) 1e6 + 3)  // choose a large prime number
