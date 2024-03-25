@@ -4,16 +4,34 @@
 
 #include "ttt.h"
 #include <ctype.h>
+#include <setjmp.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "../list.h"
 #include "game.h"
 #include "mcts.h"
 #include "negamax.h"
 
-#define USE_MCTS 1
+struct task {
+    jmp_buf env;
+    struct list_head list;
+    char task_name[10];
+};
 
+struct arg {
+    char *task_name;
+};
+
+static LIST_HEAD(tasklist);
+static void (**tasks)(void *);
+static struct arg *args;
+static int ntasks;
+static jmp_buf sched;
+static struct task *cur_task;
+char task_table[N_GRIDS];
 static int move_record[N_GRIDS];
 static int move_count = 0;
 
@@ -102,11 +120,6 @@ int ttt()
     char turn = 'X';
     char ai = 'O';
 
-#if defined(USE_MCTS)
-    // A routine for initializing MCTS is not required.
-#else
-    negamax_init();
-#endif
     while (1) {
         char win = check_win(table);
         if (win == 'D') {
@@ -120,19 +133,11 @@ int ttt()
         }
 
         if (turn == ai) {
-#if defined(USE_MCTS)
             int move = mcts(table, ai);
             if (move != -1) {
                 table[move] = ai;
                 record_move(move);
             }
-#else
-            int move = negamax_predict(table, ai).move;
-            if (move != -1) {
-                table[move] = ai;
-                record_move(move);
-            }
-#endif
         } else {
             draw_board(table);
             int move;
@@ -149,6 +154,155 @@ int ttt()
         turn = turn == 'X' ? 'O' : 'X';
     }
     print_moves();
+
+    return 0;
+}
+
+static void task_add(struct task *task)
+{
+    list_add_tail(&task->list, &tasklist);
+}
+
+static void task_switch()
+{
+    if (!list_empty(&tasklist)) {
+        struct task *t = list_first_entry(&tasklist, struct task, list);
+        list_del(&t->list);
+        cur_task = t;
+        longjmp(t->env, 1);
+    }
+}
+
+void schedule(void)
+{
+    static int i;
+
+    setjmp(sched);
+
+    while (ntasks-- > 0) {
+        struct arg arg = args[i];
+        tasks[i++](&arg);
+        printf("Never reached\n");
+    }
+
+    task_switch();
+}
+
+
+/* Using MCTS algorithm */
+void ai_task_0(void *arg)
+{
+    srand(time(NULL));
+    char ai = 'O';
+    struct task *task = malloc(sizeof(struct task));
+    strncpy(task->task_name, ((struct arg *) arg)->task_name,
+            sizeof(task->task_name));
+    task->task_name[sizeof(task->task_name) - 1] = '\0';
+    INIT_LIST_HEAD(&task->list);
+
+    printf("%s: enable\n", task->task_name);
+
+    if (setjmp(task->env) == 0) {
+        task_add(task);
+        longjmp(sched, 1);
+    }
+
+    task = cur_task;
+    setjmp(task->env);
+
+    /* Check win or lose */
+    char win = check_win(task_table);
+    if (win == 'D') {
+        draw_board(task_table);
+        printf("It is a draw!\n");
+        goto print_result;
+    } else if (win != ' ') {
+        draw_board(task_table);
+        printf("%c won!\n", win);
+        goto print_result;
+    }
+
+    /* Make a move */
+    int move = mcts(task_table, ai);
+    if (move != -1) {
+        task_table[move] = ai;
+        record_move(move);
+    }
+
+    task_add(task);
+    task_switch();
+
+print_result:
+    print_moves();
+    return;
+}
+
+
+
+/* Using negamax algorithm */
+void ai_task_1(void *arg)
+{
+    srand(time(NULL));
+    char ai = 'X';
+    struct task *task = malloc(sizeof(struct task));
+    strncpy(task->task_name, ((struct arg *) arg)->task_name,
+            sizeof(task->task_name));
+    task->task_name[sizeof(task->task_name) - 1] = '\0';
+    INIT_LIST_HEAD(&task->list);
+
+    printf("%s: enable\n", task->task_name);
+
+    if (setjmp(task->env) == 0) {
+        task_add(task);
+        longjmp(sched, 1);
+    }
+
+    task = cur_task;
+    setjmp(task->env);
+
+    /* Check win or lose */
+    char win = check_win(task_table);
+    if (win == 'D') {
+        draw_board(task_table);
+        printf("It is a draw!\n");
+        goto print_result;
+    } else if (win != ' ') {
+        draw_board(task_table);
+        printf("%c won!\n", win);
+        goto print_result;
+    }
+
+    /* Make a move */
+    int move = negamax_predict(task_table, ai).move;
+    if (move != -1) {
+        task_table[move] = ai;
+        record_move(move);
+    }
+
+    task_add(task);
+    task_switch();
+
+print_result:
+    print_moves();
+    return;
+}
+
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+int corutine_ai(void)
+{
+    void (*registered_task[])(void *) = {ai_task_0, ai_task_1};
+    struct arg arg0 = {.task_name = "MCST_task0"};
+    struct arg arg1 = {.task_name = "Negamax_task1"};
+    struct arg registered_arg[] = {arg0, arg1};
+    tasks = registered_task;
+    args = registered_arg;
+    ntasks = ARRAY_SIZE(registered_task);
+
+    /* Clear table */
+    memset(task_table, ' ', N_GRIDS);
+
+    /* Start AI vs AI */
+    schedule();
 
     return 0;
 }
