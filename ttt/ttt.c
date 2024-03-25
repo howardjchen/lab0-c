@@ -223,9 +223,10 @@ void ai_task_0(void *arg)
         task_add(task);
         longjmp(sched, 1);
     }
-
     task = cur_task;
+
     setjmp(task->env);
+    task = cur_task;
 
     /* Check win or lose */
     char win = check_win(task_table);
@@ -274,9 +275,10 @@ void ai_task_1(void *arg)
         task_add(task);
         longjmp(sched, 1);
     }
-
     task = cur_task;
+
     setjmp(task->env);
+    task = cur_task;
 
     /* Check win or lose */
     char win = check_win(task_table);
