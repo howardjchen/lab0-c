@@ -163,13 +163,30 @@ static void task_add(struct task *task)
     list_add_tail(&task->list, &tasklist);
 }
 
+static int task_len(struct list_head *head)
+{
+    if (!head)
+        return 0;
+
+    int len = 0;
+    struct list_head *li;
+
+    list_for_each (li, head)
+        len++;
+    return len;
+}
+
 static void task_switch()
 {
     if (!list_empty(&tasklist)) {
         struct task *t = list_first_entry(&tasklist, struct task, list);
         list_del(&t->list);
         cur_task = t;
-        longjmp(t->env, 1);
+        if (task_len(&tasklist) > 0) {
+            printf("%s: %s\n", strcmp(t->task_name, "MCST_task") ? "X" : "O",
+                   t->task_name);
+            longjmp(t->env, 1);
+        }
     }
 }
 
@@ -218,7 +235,7 @@ void ai_task_0(void *arg)
         goto print_result;
     } else if (win != ' ') {
         draw_board(task_table);
-        printf("%c won!\n", win);
+        printf("%c: %s won!\n", win, task->task_name);
         goto print_result;
     }
 
@@ -234,7 +251,7 @@ void ai_task_0(void *arg)
 
 print_result:
     print_moves();
-    return;
+    longjmp(sched, 1);
 }
 
 
@@ -251,6 +268,7 @@ void ai_task_1(void *arg)
     INIT_LIST_HEAD(&task->list);
 
     printf("%s: enable\n", task->task_name);
+    negamax_init();
 
     if (setjmp(task->env) == 0) {
         task_add(task);
@@ -268,7 +286,7 @@ void ai_task_1(void *arg)
         goto print_result;
     } else if (win != ' ') {
         draw_board(task_table);
-        printf("%c won!\n", win);
+        printf("%c: %s won!\n", win, task->task_name);
         goto print_result;
     }
 
@@ -278,13 +296,14 @@ void ai_task_1(void *arg)
         task_table[move] = ai;
         record_move(move);
     }
+    draw_board(task_table);
 
     task_add(task);
     task_switch();
 
 print_result:
     print_moves();
-    return;
+    longjmp(sched, 1);
 }
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -300,6 +319,7 @@ int corutine_ai(void)
 
     /* Clear table */
     memset(task_table, ' ', N_GRIDS);
+    draw_board(task_table);
 
     /* Start AI vs AI */
     schedule();

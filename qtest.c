@@ -1057,7 +1057,7 @@ static bool do_ttt(int argc, char *argv[])
     }
 
     /* run the code here */
-    ttt();
+    corutine_ai();
 
     return 0;
 }
