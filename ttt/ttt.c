@@ -259,19 +259,18 @@ void kb_event_task(void *arg)
 
     if (read(STDIN_FILENO, &c, 1) != 1) {
         task_add(task);
-        disable_raw_mode();
     } else {
         switch (c) {
         case CTRL_KEY('q'):
             game_stop = 1;
-            printf("Ctrl+Q detected!\n");
+            printf("Ctrl+Q detected!\n\r");
             return;
         case CTRL_KEY('p'):
-            printf("Ctrl+P detected!\n");
+            printf("Ctrl+P detected!\n\r");
             break;
         }
     }
-
+    disable_raw_mode();
     task_switch();
 }
 
