@@ -40,6 +40,7 @@ char task_table[N_GRIDS];
 static int move_record[N_GRIDS];
 static int move_count = 0;
 struct termios orig_termios;
+int game_stop = 0;
 
 static void record_move(int move)
 {
@@ -182,6 +183,25 @@ static int task_len(struct list_head *head)
     return len;
 }
 
+void disable_raw_mode()
+{
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void enable_raw_mode()
+{
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    atexit(disable_raw_mode);
+    struct termios raw = orig_termios;
+    raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+    raw.c_oflag &= ~(OPOST);
+    raw.c_cflag |= (CS8);
+    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1;
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
 static void task_switch()
 {
     if (!list_empty(&tasklist)) {
@@ -209,47 +229,45 @@ void schedule(void)
     }
 
     task_switch();
+    disable_raw_mode();
 }
 
-void disable_raw_mode()
-{
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
-}
-
-void enable_raw_mode()
-{
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    atexit(disable_raw_mode);
-    struct termios raw = orig_termios;
-    raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-    raw.c_oflag &= ~(OPOST);
-    raw.c_cflag |= (CS8);
-    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-    raw.c_cc[VMIN] = 0;
-    raw.c_cc[VTIME] = 1;
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-}
-
-void kb_event_task()
+void kb_event_task(void *arg)
 {
     char c;
+    struct task *task = malloc(sizeof(struct task));
+    strncpy(task->task_name, ((struct arg *) arg)->task_name,
+            sizeof(task->task_name));
+    task->task_name[sizeof(task->task_name) - 1] = '\0';
+    INIT_LIST_HEAD(&task->list);
 
+    printf("%s: enable\n", task->task_name);
     enable_raw_mode();
 
-    while (1) {
-        if (read(STDIN_FILENO, &c, 1) == 1) {
-            switch (c) {
-            case CTRL_KEY('q'):
-                printf("Ctrl+Q detected!\n");
-                return;
-            case CTRL_KEY('p'):
-                printf("Ctrl+P detected!\n");
-                break;
-            }
+    if (setjmp(task->env) == 0) {
+        task_add(task);
+        longjmp(sched, 1);
+    }
+    task = cur_task;
+
+    setjmp(task->env);
+    task = cur_task;
+
+    if (read(STDIN_FILENO, &c, 1) != 1) {
+        task_add(task);
+    } else {
+        switch (c) {
+        case CTRL_KEY('q'):
+            game_stop = 1;
+            printf("Ctrl+Q detected!\n");
+            return;
+        case CTRL_KEY('p'):
+            printf("Ctrl+P detected!\n");
+            break;
         }
     }
 
-    disable_raw_mode();
+    task_switch();
 }
 
 
@@ -358,10 +376,11 @@ print_result:
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 int corutine_ai(void)
 {
-    void (*registered_task[])(void *) = {ai_task_0, ai_task_1};
+    void (*registered_task[])(void *) = {ai_task_0, ai_task_1, kb_event_task};
     struct arg arg0 = {.task_name = "MCST_task0"};
     struct arg arg1 = {.task_name = "Negamax_task1"};
-    struct arg registered_arg[] = {arg0, arg1};
+    struct arg arg2 = {.task_name = "kb_task"};
+    struct arg registered_arg[] = {arg0, arg1, arg2};
     tasks = registered_task;
     args = registered_arg;
     ntasks = ARRAY_SIZE(registered_task);
