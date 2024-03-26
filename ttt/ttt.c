@@ -41,6 +41,7 @@ static int move_record[N_GRIDS];
 static int move_count = 0;
 struct termios orig_termios;
 int game_stop = 0;
+int rawmode = 0;
 
 static void record_move(int move)
 {
@@ -186,6 +187,7 @@ static int task_len(struct list_head *head)
 void disable_raw_mode()
 {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+    rawmode = 0;
 }
 
 void enable_raw_mode()
@@ -200,6 +202,7 @@ void enable_raw_mode()
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME] = 1;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    rawmode = 1;
 }
 
 static void task_switch()
@@ -229,7 +232,8 @@ void schedule(void)
     }
 
     task_switch();
-    disable_raw_mode();
+    if (rawmode == 0)
+        disable_raw_mode();
 }
 
 void kb_event_task(void *arg)
@@ -242,7 +246,6 @@ void kb_event_task(void *arg)
     INIT_LIST_HEAD(&task->list);
 
     printf("%s: enable\n", task->task_name);
-    enable_raw_mode();
 
     if (setjmp(task->env) == 0) {
         task_add(task);
@@ -252,9 +255,11 @@ void kb_event_task(void *arg)
 
     setjmp(task->env);
     task = cur_task;
+    enable_raw_mode();
 
     if (read(STDIN_FILENO, &c, 1) != 1) {
         task_add(task);
+        disable_raw_mode();
     } else {
         switch (c) {
         case CTRL_KEY('q'):
