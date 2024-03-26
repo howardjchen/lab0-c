@@ -9,11 +9,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <time.h>
+#include <unistd.h>
 #include "../list.h"
 #include "game.h"
 #include "mcts.h"
 #include "negamax.h"
+
+// Bitwise AND with 0x1f to clear the 5th and 6th bits
+#define CTRL_KEY(k) ((k) &0x1f)
 
 struct task {
     jmp_buf env;
@@ -34,6 +39,7 @@ static struct task *cur_task;
 char task_table[N_GRIDS];
 static int move_record[N_GRIDS];
 static int move_count = 0;
+struct termios orig_termios;
 
 static void record_move(int move)
 {
@@ -203,6 +209,47 @@ void schedule(void)
     }
 
     task_switch();
+}
+
+void disable_raw_mode()
+{
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void enable_raw_mode()
+{
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    atexit(disable_raw_mode);
+    struct termios raw = orig_termios;
+    raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP);
+    raw.c_oflag &= ~(OPOST);
+    raw.c_cflag |= (CS8);
+    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1;
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void kb_event_task()
+{
+    char c;
+
+    enable_raw_mode();
+
+    while (1) {
+        if (read(STDIN_FILENO, &c, 1) == 1) {
+            switch (c) {
+            case CTRL_KEY('q'):
+                printf("Ctrl+Q detected!\n");
+                return;
+            case CTRL_KEY('p'):
+                printf("Ctrl+P detected!\n");
+                break;
+            }
+        }
+    }
+
+    disable_raw_mode();
 }
 
 
