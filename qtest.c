@@ -1059,8 +1059,10 @@ static bool do_ttt(int argc, char *argv[])
     /* run the code here */
     if (ai_mode)
         corutine_ai();
-    else
-        ttt();
+    else {
+        for (size_t i = 0; i < 5; i++)
+            corutine_ai();
+    }
 
     return 0;
 }

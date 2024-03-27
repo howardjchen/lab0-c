@@ -19,6 +19,7 @@
 
 // Bitwise AND with 0x1f to clear the 5th and 6th bits
 #define CTRL_KEY(k) ((k) &0x1f)
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 struct task {
     jmp_buf env;
@@ -37,8 +38,8 @@ static int ntasks;
 static jmp_buf sched;
 static struct task *cur_task;
 char task_table[N_GRIDS];
-static int move_record[N_GRIDS];
-static int move_count = 0;
+int move_record[N_GRIDS];
+int move_count = 0;
 struct termios orig_termios;
 int game_stop = 0;
 int rawmode = 0;
@@ -127,6 +128,9 @@ int ttt()
     memset(table, ' ', N_GRIDS);
     char turn = 'X';
     char ai = 'O';
+
+    memset(move_record, 0, N_GRIDS * sizeof(int));
+    move_count = 0;
 
     while (1) {
         char win = check_win(table);
@@ -232,8 +236,11 @@ void schedule(void)
     }
 
     task_switch();
-    if (rawmode == 0)
+    if (rawmode == 1)
         disable_raw_mode();
+
+    /* Assign back initial value */
+    i = 0;
 }
 
 void kb_event_task(void *arg)
@@ -375,7 +382,6 @@ print_result:
     longjmp(sched, 1);
 }
 
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 int corutine_ai(void)
 {
     void (*registered_task[])(void *) = {ai_task_0, ai_task_1, kb_event_task};
@@ -390,6 +396,8 @@ int corutine_ai(void)
     /* Clear table */
     memset(task_table, ' ', N_GRIDS);
     draw_board(task_table);
+    memset(move_record, 0, N_GRIDS * sizeof(int));
+    move_count = 0;
 
     /* Start AI vs AI */
     schedule();
