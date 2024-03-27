@@ -12,6 +12,7 @@
 
 /* Simulation flag of console option */
 extern int simulation;
+extern int ai_mode;
 
 /* Each command defined in terms of a function */
 typedef bool (*cmd_func_t)(int argc, char *argv[]);

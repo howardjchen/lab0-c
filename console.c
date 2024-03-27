@@ -16,6 +16,7 @@
 #include "web.h"
 
 /* Some global values */
+int ai_mode = 0;
 int simulation = 0;
 int show_entropy = 0;
 static cmd_element_t *cmd_list = NULL;
@@ -431,6 +432,7 @@ void init_cmd()
     ADD_COMMAND(time, "Time command execution", "cmd arg ...");
     ADD_COMMAND(web, "Read commands from builtin web server", "[port]");
     add_cmd("#", do_comment_cmd, "Display comment", "...");
+    add_param("ai_mode", &ai_mode, "Start/Stop AI vs AI mode", NULL);
     add_param("simulation", &simulation, "Start/Stop simulation mode", NULL);
     add_param("verbose", &verblevel, "Verbosity level", NULL);
     add_param("error", &err_limit, "Number of errors until exit", NULL);

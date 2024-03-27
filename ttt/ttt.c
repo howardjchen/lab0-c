@@ -320,7 +320,6 @@ void ai_task_0(void *arg)
     task_switch();
 
 print_result:
-    print_moves();
     longjmp(sched, 1);
 }
 
@@ -373,7 +372,6 @@ void ai_task_1(void *arg)
     task_switch();
 
 print_result:
-    print_moves();
     longjmp(sched, 1);
 }
 
@@ -395,6 +393,7 @@ int corutine_ai(void)
 
     /* Start AI vs AI */
     schedule();
+    print_moves();
 
     return 0;
 }
