@@ -25,6 +25,8 @@ const line_t lines[4] = {
     {1, -1, 0, GOAL - 1, BOARD_SIZE - GOAL + 1, BOARD_SIZE},     // SECONDARY
 };
 
+int stop_draw = 0;
+
 static char check_line_segment_win(const char *t, int i, int j, line_t line)
 {
     char last = t[GET_INDEX(i, j)];
@@ -85,6 +87,10 @@ int *available_moves(const char *table)
 
 void draw_board(const char *t)
 {
+    /* If Ctrl-P was pressed, stop draw board */
+    if (stop_draw)
+        return;
+
     for (int i = 0; i < BOARD_SIZE; i++) {
         if (BOARD_SIZE < 10)
             printf("%2d | ", i + 1);

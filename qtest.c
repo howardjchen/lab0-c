@@ -1100,6 +1100,7 @@ static bool do_ttt(int argc, char *argv[])
 
     free(move_cnt);
     free(move_table);
+    stop_draw = 0;
 
     return 0;
 }

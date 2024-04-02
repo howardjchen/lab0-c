@@ -39,7 +39,6 @@ char task_table[N_GRIDS];
 int move_record[N_GRIDS];
 int move_count = 0;
 struct termios orig_termios;
-int game_stop = 0;
 int rawmode = 0;
 
 static void record_move(int move)
@@ -214,8 +213,8 @@ static void task_switch()
         list_del(&t->list);
         cur_task = t;
         if (task_len(&tasklist) > 0) {
-            printf("%s: %s\n", strcmp(t->task_name, "MCST_task") ? "X" : "O",
-                   t->task_name);
+            // printf("%s: %s\n", strcmp(t->task_name, "MCST_task") ? "X" : "O",
+            //        t->task_name);
             longjmp(t->env, 1);
         }
     }
@@ -250,8 +249,6 @@ void kb_event_task(void *arg)
     task->task_name[sizeof(task->task_name) - 1] = '\0';
     INIT_LIST_HEAD(&task->list);
 
-    printf("%s: enable\n", task->task_name);
-
     if (setjmp(task->env) == 0) {
         task_add(task);
         longjmp(sched, 1);
@@ -267,10 +264,10 @@ void kb_event_task(void *arg)
     } else {
         switch (c) {
         case CTRL_KEY('q'):
-            game_stop = 1;
             printf("Ctrl+Q detected!\n\r");
             return;
         case CTRL_KEY('p'):
+            stop_draw = 1;
             printf("Ctrl+P detected!\n\r");
             break;
         }
@@ -290,8 +287,6 @@ void ai_task_0(void *arg)
             sizeof(task->task_name));
     task->task_name[sizeof(task->task_name) - 1] = '\0';
     INIT_LIST_HEAD(&task->list);
-
-    printf("%s: enable\n", task->task_name);
 
     if (setjmp(task->env) == 0) {
         task_add(task);
@@ -341,7 +336,6 @@ void ai_task_1(void *arg)
     task->task_name[sizeof(task->task_name) - 1] = '\0';
     INIT_LIST_HEAD(&task->list);
 
-    printf("%s: enable\n", task->task_name);
     negamax_init();
 
     if (setjmp(task->env) == 0) {

@@ -18,6 +18,7 @@ typedef struct {
 } line_t;
 
 extern const line_t lines[4];
+extern int stop_draw;
 
 int *available_moves(const char *table);
 char check_win(char *t);
