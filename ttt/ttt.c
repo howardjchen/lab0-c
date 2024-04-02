@@ -40,6 +40,7 @@ int move_record[N_GRIDS];
 int move_count = 0;
 struct termios orig_termios;
 int rawmode = 0;
+int won = 0;
 
 static void record_move(int move)
 {
@@ -304,8 +305,11 @@ void ai_task_0(void *arg)
         printf("It is a draw!\n");
         goto print_result;
     } else if (win != ' ') {
-        draw_board(task_table);
-        printf("%c: %s won!\n", win, task->task_name);
+        if (!won) {
+            draw_board(task_table);
+            printf("%c: %s won!\n", win, task->task_name);
+            won = 1;
+        }
         goto print_result;
     }
 
@@ -354,8 +358,11 @@ void ai_task_1(void *arg)
         printf("It is a draw!\n");
         goto print_result;
     } else if (win != ' ') {
-        draw_board(task_table);
-        printf("%c: %s won!\n", win, task->task_name);
+        if (!won) {
+            draw_board(task_table);
+            printf("%c: %s won!\n", win, task->task_name);
+            won = 1;
+        }
         goto print_result;
     }
 
@@ -394,5 +401,6 @@ int corutine_ai(void)
     /* Start AI vs AI */
     schedule();
 
+    won = 0;
     return 0;
 }

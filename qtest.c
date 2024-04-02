@@ -1073,7 +1073,7 @@ static void print_move_table(int **move_table, int *move_count, int len)
 
 static bool do_ttt(int argc, char *argv[])
 {
-    int round = 5;
+    int round = 10;
     int *move_cnt = malloc(round * sizeof(int));
     int **move_table = malloc(round * sizeof(int *));
     int index = 0;

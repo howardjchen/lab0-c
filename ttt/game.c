@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "game.h"
 
@@ -141,4 +142,11 @@ void draw_board(const char *t)
     for (int i = 0; i < BOARD_SIZE; i++)
         printf(" %2c", 'A' + i);
     printf("\n");
+
+    time_t timer = time(NULL);
+    struct tm *tm_info = localtime(&timer);
+
+    char buffer[26];
+    strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+    puts(buffer);
 }
