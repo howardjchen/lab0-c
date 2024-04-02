@@ -22,6 +22,7 @@
 #include "dudect/fixture.h"
 #include "list.h"
 #include "random.h"
+#include "ttt/game.h"
 #include "ttt/ttt.h"
 
 /* Shannon entropy */
@@ -1049,20 +1050,56 @@ static bool do_shuffle(int argc, char *argv[])
     return !error_check();
 }
 
+void copy_move_table(int *src, int *dst, int len)
+{
+    for (int i = 0; i < len; i++)
+        dst[i] = src[i];
+}
+
+static void print_move_table(int **move_table, int *move_count, int len)
+{
+    for (int i = 0; i < len; i++) {
+        printf("Moves: ");
+        for (int j = 0; j < move_count[i]; j++) {
+            printf("%c%d", 'A' + GET_COL(move_table[i][j]),
+                   1 + GET_ROW(move_table[i][j]));
+            if (j < move_count[i] - 1) {
+                printf(" -> ");
+            }
+        }
+        printf("\n");
+    }
+}
+
 static bool do_ttt(int argc, char *argv[])
 {
+    int round = 5;
+    int *move_cnt = malloc(round * sizeof(int));
+    int **move_table = malloc(round * sizeof(int *));
+    int index = 0;
+
     if (argc != 1) {
         report(1, "%s takes no arguments", argv[0]);
         return false;
     }
 
     /* run the code here */
-    if (ai_mode)
-        corutine_ai();
-    else {
-        for (size_t i = 0; i < 5; i++)
+    if (ai_mode) {
+        for (size_t i = 0; i < round; i++) {
             corutine_ai();
-    }
+            move_cnt[index] = move_count;
+            index++;
+
+            /* Copy move_record to move_table */
+            move_table[i] = malloc(move_count * sizeof(int));
+            copy_move_table(move_record, move_table[i], move_count);
+        }
+        print_move_table(move_table, move_cnt, round);
+    } else
+        ttt();
+
+    free(move_cnt);
+    free(move_table);
 
     return 0;
 }

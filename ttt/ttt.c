@@ -13,13 +13,11 @@
 #include <time.h>
 #include <unistd.h>
 #include "../list.h"
-#include "game.h"
 #include "mcts.h"
 #include "negamax.h"
 
 // Bitwise AND with 0x1f to clear the 5th and 6th bits
 #define CTRL_KEY(k) ((k) &0x1f)
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 struct task {
     jmp_buf env;
@@ -401,7 +399,6 @@ int corutine_ai(void)
 
     /* Start AI vs AI */
     schedule();
-    print_moves();
 
     return 0;
 }
