@@ -41,6 +41,7 @@ int move_count = 0;
 struct termios orig_termios;
 int rawmode = 0;
 int won = 0;
+int game_stop = 0;
 
 static void record_move(int move)
 {
@@ -214,8 +215,6 @@ static void task_switch()
         list_del(&t->list);
         cur_task = t;
         if (task_len(&tasklist) > 0) {
-            // printf("%s: %s\n", strcmp(t->task_name, "MCST_task") ? "X" : "O",
-            //        t->task_name);
             longjmp(t->env, 1);
         }
     }
@@ -258,6 +257,10 @@ void kb_event_task(void *arg)
 
     setjmp(task->env);
     task = cur_task;
+
+    if (game_stop)
+        task_switch();
+
     enable_raw_mode();
 
     if (read(STDIN_FILENO, &c, 1) != 1) {
@@ -265,8 +268,9 @@ void kb_event_task(void *arg)
     } else {
         switch (c) {
         case CTRL_KEY('q'):
+            game_stop = 1;
             printf("Ctrl+Q detected!\n\r");
-            return;
+            break;
         case CTRL_KEY('p'):
             stop_draw = 1;
             printf("Ctrl+P detected!\n\r");
@@ -297,6 +301,9 @@ void ai_task_0(void *arg)
 
     setjmp(task->env);
     task = cur_task;
+
+    if (game_stop)
+        task_switch();
 
     /* Check win or lose */
     char win = check_win(task_table);
@@ -350,6 +357,9 @@ void ai_task_1(void *arg)
 
     setjmp(task->env);
     task = cur_task;
+
+    if (game_stop)
+        task_switch();
 
     /* Check win or lose */
     char win = check_win(task_table);

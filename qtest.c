@@ -1087,6 +1087,8 @@ static bool do_ttt(int argc, char *argv[])
     if (ai_mode) {
         for (size_t i = 0; i < round; i++) {
             corutine_ai();
+            if (game_stop)
+                break;
             move_cnt[index] = move_count;
             index++;
 
@@ -1094,13 +1096,15 @@ static bool do_ttt(int argc, char *argv[])
             move_table[i] = malloc(move_count * sizeof(int));
             copy_move_table(move_record, move_table[i], move_count);
         }
-        print_move_table(move_table, move_cnt, round);
+        if (!game_stop)
+            print_move_table(move_table, move_cnt, round);
     } else
         ttt();
 
     free(move_cnt);
     free(move_table);
     stop_draw = 0;
+    game_stop = 0;
 
     return 0;
 }

@@ -6,6 +6,7 @@
 
 extern int move_record[N_GRIDS];
 extern int move_count;
+extern int game_stop;
 
 int ttt();
 int corutine_ai();
